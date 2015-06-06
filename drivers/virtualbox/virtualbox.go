@@ -114,6 +114,27 @@ func (d *Driver) GetSSHKeyPath() string {
 }
 
 func (d *Driver) GetSSHPort() (int, error) {
+	if d.SSHPort != 0 {
+		return d.SSHPort, nil
+	}
+
+	stdout, _, err := vbmOutErr("showvminfo", d.MachineName,
+		"--machinereadable")
+	if err != nil {
+		return d.SSHPort, err
+	}
+
+	re := regexp.MustCompile(`(?m)^Forwarding.*="ssh,tcp,127.0.0.1,(\d+),,22"`)
+	sshPortMatch := re.FindStringSubmatch(stdout)
+	if len(sshPortMatch) < 1 {
+		return d.SSHPort, err
+	}
+
+	sshPortValInt, err := strconv.ParseInt(sshPortMatch[1], 0, 64)
+	if err == nil {
+		d.SSHPort = int(sshPortValInt)
+	}
+
 	return d.SSHPort, nil
 }
 
